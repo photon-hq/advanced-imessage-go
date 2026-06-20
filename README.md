@@ -33,7 +33,7 @@ func main() {
 	}
 	defer client.Close()
 
-	chat, err := imessage.ParseChatGUID("iMessage;-;+15551234567")
+	chat, err := imessage.ParseChatGUID("any;-;+15551234567")
 	if err != nil {
 		log.Fatal(err)
 	}
