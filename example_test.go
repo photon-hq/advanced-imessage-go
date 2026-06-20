@@ -19,7 +19,8 @@ func Example() {
 
 	chat, err := imessage.ParseChatGUID("iMessage;-;+15551234567")
 	if err != nil {
-		log.Fatal(err)
+		log.Print(err)
+		return
 	}
 
 	msg, err := client.Messages().SendText(context.Background(), chat, "Hello from Go!", nil)
@@ -27,7 +28,8 @@ func Example() {
 		if imessage.IsRateLimited(err) {
 			log.Println("slow down")
 		}
-		log.Fatal(err)
+		log.Print(err)
+		return
 	}
 	fmt.Println(msg.GUID)
 }

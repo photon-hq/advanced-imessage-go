@@ -26,13 +26,6 @@ func timePtrFromProto(ts *timestamppb.Timestamp) *time.Time {
 	return &t
 }
 
-func protoTimestamp(t time.Time) *timestamppb.Timestamp {
-	if t.IsZero() {
-		return nil
-	}
-	return timestamppb.New(t)
-}
-
 func ptrInt(v int32) *int {
 	i := int(v)
 	return &i
@@ -86,19 +79,6 @@ func chatServiceFromProto(s imessagev1.ChatServiceType) ChatServiceType {
 		return ServiceRCS
 	default:
 		return ServiceUnknown
-	}
-}
-
-func chatServiceToProto(s ChatServiceType) imessagev1.ChatServiceType {
-	switch s {
-	case ServiceIMessage:
-		return imessagev1.ChatServiceType_CHAT_SERVICE_TYPE_IMESSAGE
-	case ServiceSMS:
-		return imessagev1.ChatServiceType_CHAT_SERVICE_TYPE_SMS
-	case ServiceRCS:
-		return imessagev1.ChatServiceType_CHAT_SERVICE_TYPE_RCS
-	default:
-		return imessagev1.ChatServiceType_CHAT_SERVICE_TYPE_UNSPECIFIED
 	}
 }
 

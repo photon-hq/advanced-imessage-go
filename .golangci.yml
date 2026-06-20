@@ -28,6 +28,11 @@ linters:
     gocritic:
       disabled-checks:
         - ifElseChain
+    gosec:
+      excludes:
+        # int -> int32 when mapping bounded domain values (part indices, text
+        # offsets) onto proto32 fields. Overflow is not reachable in practice.
+        - G115
   exclusions:
     rules:
       # Generated golden fixtures and tests may relax some rules.

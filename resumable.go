@@ -149,7 +149,7 @@ func (r *resumableMessages) run(ctx context.Context) {
 // reports completion.
 func (r *resumableMessages) catchUp(ctx context.Context, cursor *uint64) error {
 	sub := r.client.Events().CatchUp(ctx, *cursor)
-	defer sub.Close()
+	defer func() { _ = sub.Close() }()
 
 	for ev := range sub.Events() {
 		switch e := ev.(type) {
@@ -185,7 +185,7 @@ func (r *resumableMessages) catchUp(ctx context.Context, cursor *uint64) error {
 // live delivers events from a live subscription until it ends or errors.
 func (r *resumableMessages) live(ctx context.Context, cursor *uint64) error {
 	sub := r.client.Messages().Subscribe(ctx, &SubscribeOptions{Chat: r.chat})
-	defer sub.Close()
+	defer func() { _ = sub.Close() }()
 
 	for ev := range sub.Events() {
 		_, seq := messageEventMeta(ev)
@@ -225,7 +225,7 @@ func (r *resumableMessages) Events() iter.Seq[MessageEvent] {
 			r.setErr(errAlreadyConsumed)
 			return
 		}
-		defer r.Close()
+		defer func() { _ = r.Close() }()
 		for res := range r.out {
 			if res.err != nil {
 				r.setErr(res.err)

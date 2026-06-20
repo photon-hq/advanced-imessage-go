@@ -15,8 +15,6 @@ import (
 	imessagev1 "buf.build/gen/go/photon-hq/imessage/protocolbuffers/go/photon/imessage/v1"
 	"connectrpc.com/connect"
 	"go.uber.org/goleak"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 
 	imessage "github.com/photon-hq/advanced-imessage-go"
 )
@@ -42,7 +40,11 @@ func newClient(t *testing.T, mounts ...func(*http.ServeMux)) *imessage.Client {
 	for _, mount := range mounts {
 		mount(mux)
 	}
-	srv := httptest.NewServer(h2c.NewHandler(mux, &http2.Server{}))
+	srv := httptest.NewUnstartedServer(mux)
+	protocols := new(http.Protocols)
+	protocols.SetUnencryptedHTTP2(true)
+	srv.Config.Protocols = protocols
+	srv.Start()
 	t.Cleanup(srv.Close)
 
 	addr := strings.TrimPrefix(srv.URL, "http://")

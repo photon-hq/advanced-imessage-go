@@ -45,6 +45,7 @@ type result[T any] struct {
 // is bound to a derived context and is guaranteed to exit on Close or when the
 // parent ctx is cancelled.
 func Subscribe[F, T any](ctx context.Context, open OpenFunc[F], mapFn MapFunc[F, T]) *Subscription[T] {
+	//nolint:gosec // cancel is stored on the Subscription and invoked by Close.
 	ctx, cancel := context.WithCancel(ctx)
 	s := &Subscription[T]{
 		cancel: cancel,
@@ -67,7 +68,7 @@ func pump[F, T any](ctx context.Context, s *Subscription[T], open OpenFunc[F], m
 		s.trySend(ctx, result[T]{err: err})
 		return
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	for {
 		if !stream.Receive() {
@@ -111,7 +112,7 @@ func (s *Subscription[T]) Events() iter.Seq[T] {
 			s.setErr(errAlreadyConsumed)
 			return
 		}
-		defer s.Close()
+		defer func() { _ = s.Close() }()
 		for r := range s.out {
 			if r.err != nil {
 				s.setErr(r.err)
