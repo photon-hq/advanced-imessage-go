@@ -1,4 +1,4 @@
-.PHONY: all check lint test test-race tidy vet build help
+.PHONY: all check lint test test-interop test-race tidy vet build help
 
 GO ?= go
 
@@ -21,6 +21,10 @@ lint: ## Run golangci-lint (if installed)
 
 test: ## Run tests
 	$(GO) test ./...
+
+test-interop: ## Install the TS SDK fixture and run Go<->JS interop tests
+	npm --prefix testdata/interop-js install
+	$(GO) test -count=1 -tags interop ./...
 
 test-race: ## Run tests with the race detector
 	$(GO) test -race ./...

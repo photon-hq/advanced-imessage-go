@@ -127,6 +127,16 @@ make check   # tidy + vet + lint + race tests
 make test    # go test ./...
 ```
 
+Run the cross-language message interop suite against the TypeScript SDK with:
+
+```sh
+make test-interop
+```
+
+That target installs `@photon-ai/advanced-imessage` into `testdata/interop-js`,
+starts an in-memory Go gRPC server, runs both SDKs through the same message
+operations and event streams, and compares the protobuf requests they emit.
+
 The generated Connect SDK comes from the Buf Schema Registry
 (`buf.build/photon-hq/imessage`); bump it with `make update-sdk`.
 
