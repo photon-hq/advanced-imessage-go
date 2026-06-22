@@ -15,3 +15,4 @@ While the major version is `0`, the public API may change between minor releases
   (addresses, attachments, chats, events, groups, locations, messages, polls),
   range-over-iterator event streams, a structured error type, and a resumable
   subscription helper backed by a caller-supplied `SequenceStore`.
+- Minimum supported Go version is **1.24** (CI tests 1.24, 1.25, and 1.26).

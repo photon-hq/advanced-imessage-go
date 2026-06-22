@@ -12,9 +12,9 @@ jobs:
   test:
     strategy:
       fail-fast: false
-        # connectrpc.com/connect requires Go 1.25+, which sets the floor.
+      # connect v1.19.2 / golang.org/x/net v0.48 set the floor at Go 1.24.
       matrix:
-        go: ["1.25", "1.26"]
+        go: ["1.24", "1.25", "1.26"]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

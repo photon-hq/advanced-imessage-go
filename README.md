@@ -12,7 +12,7 @@ messages, and polls.
 go get github.com/photon-hq/advanced-imessage-go
 ```
 
-Requires **Go 1.25+** (the `connectrpc.com/connect` runtime sets the floor).
+Requires **Go 1.24+** (the `connectrpc.com/connect` runtime sets the floor).
 
 ## Quick start
 
