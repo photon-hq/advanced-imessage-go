@@ -1,0 +1,22 @@
+name: release-please
+
+on:
+  push:
+    branches: [main]
+
+# release-please needs to open/update the release PR and, on merge, push the
+# tag + create the GitHub Release. The Go module proxy picks up the tag itself.
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      # Reads release-please-config.json + .release-please-manifest.json from
+      # the repo root. On a normal push it maintains the release PR; when that
+      # PR merges it tags vX.Y.Z and cuts the GitHub Release.
+      - uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
