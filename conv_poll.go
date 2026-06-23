@@ -1,6 +1,9 @@
 package imessage
 
 import (
+	"cmp"
+	"slices"
+
 	imessagev1 "buf.build/gen/go/photon-hq/imessage/protocolbuffers/go/photon/imessage/v1"
 )
 
@@ -13,6 +16,7 @@ func pollFromProto(pb *imessagev1.PollInfo) Poll {
 		ChatGUID:        pb.GetChatGuid(),
 		Title:           pb.GetTitle(),
 	}
+	// Options are kept in server definition order (see [Poll.Options]).
 	for _, o := range pb.GetOptions() {
 		p.Options = append(p.Options, pollOptionFromProto(o))
 	}
@@ -22,6 +26,13 @@ func pollFromProto(pb *imessagev1.PollInfo) Poll {
 			OptionID:    v.GetOptionIdentifier(),
 		})
 	}
+	// Deterministic order (participant address, then option id); see [Poll.Votes].
+	slices.SortFunc(p.Votes, func(a, b PollParticipantVote) int {
+		if c := cmp.Compare(a.Participant.Address, b.Participant.Address); c != 0 {
+			return c
+		}
+		return cmp.Compare(a.OptionID, b.OptionID)
+	})
 	return p
 }
 

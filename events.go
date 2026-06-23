@@ -179,3 +179,41 @@ func (ChatUnarchived) isCatchUpEvent()         {}
 func (GroupChanged) isCatchUpEvent()           {}
 func (PollChanged) isCatchUpEvent()            {}
 func (CatchupComplete) isCatchUpEvent()        {}
+
+// Compile-time guards pinning each variant to its event interface(s) at the
+// definition site. The CatchUpEvent set in particular is otherwise only checked
+// at runtime (see conv_event.go), so every catch-up variant is asserted here.
+var (
+	_ MessageEvent = MessageReceived{}
+	_ MessageEvent = MessageEdited{}
+	_ MessageEvent = MessageRead{}
+	_ MessageEvent = MessageUnsent{}
+	_ MessageEvent = MessageReactionAdded{}
+	_ MessageEvent = MessageReactionRemoved{}
+	_ MessageEvent = MessageStickerPlaced{}
+
+	_ ChatEvent = ChatBackgroundChanged{}
+	_ ChatEvent = ChatBackgroundRemoved{}
+	_ ChatEvent = ChatMarkedRead{}
+	_ ChatEvent = ChatArchived{}
+	_ ChatEvent = ChatUnarchived{}
+
+	_ GroupEvent = GroupChanged{}
+	_ PollEvent  = PollChanged{}
+
+	_ CatchUpEvent = MessageReceived{}
+	_ CatchUpEvent = MessageEdited{}
+	_ CatchUpEvent = MessageRead{}
+	_ CatchUpEvent = MessageUnsent{}
+	_ CatchUpEvent = MessageReactionAdded{}
+	_ CatchUpEvent = MessageReactionRemoved{}
+	_ CatchUpEvent = MessageStickerPlaced{}
+	_ CatchUpEvent = ChatBackgroundChanged{}
+	_ CatchUpEvent = ChatBackgroundRemoved{}
+	_ CatchUpEvent = ChatMarkedRead{}
+	_ CatchUpEvent = ChatArchived{}
+	_ CatchUpEvent = ChatUnarchived{}
+	_ CatchUpEvent = GroupChanged{}
+	_ CatchUpEvent = PollChanged{}
+	_ CatchUpEvent = CatchupComplete{}
+)

@@ -90,13 +90,25 @@ func TestMessageFromProtoMapsFields(t *testing.T) {
 }
 
 func TestReactionKindRoundTrip(t *testing.T) {
-	kinds := []MessageReactionKind{
+	// Settable kinds map to proto (ok=true) and round-trip back unchanged.
+	settable := []MessageReactionKind{
 		ReactionLove, ReactionLike, ReactionDislike, ReactionLaugh,
-		ReactionEmphasize, ReactionQuestion, ReactionEmoji, ReactionSticker,
+		ReactionEmphasize, ReactionQuestion, ReactionEmoji,
 	}
-	for _, k := range kinds {
-		if got := reactionKindFromProto(reactionKindToProto(k)); got != k {
+	for _, k := range settable {
+		pb, ok := reactionKindToProto(k)
+		if !ok {
+			t.Errorf("reactionKindToProto(%q) ok = false, want true", k)
+			continue
+		}
+		if got := reactionKindFromProto(pb); got != k {
 			t.Errorf("round trip %q -> %q", k, got)
+		}
+	}
+	// Non-settable kinds must be rejected (ok=false), never coerced to a default.
+	for _, k := range []MessageReactionKind{ReactionSticker, ReactionUnknown, MessageReactionKind("bogus")} {
+		if _, ok := reactionKindToProto(k); ok {
+			t.Errorf("reactionKindToProto(%q) ok = true, want false", k)
 		}
 	}
 }

@@ -179,22 +179,31 @@ func runGoInteropClient(t *testing.T, ctx context.Context, address string) {
 		{Kind: ReactionEmoji, Emoji: ":)"},
 	}
 	for i, reaction := range reactions {
-		msg, err = client.Messages().SetReaction(ctx, chat, interopMessageGUID, reaction, i%2 == 0, &PartOptions{
+		opts := &PartOptions{
 			PartIndex:       ptrInt(2),
 			ClientMessageID: fmt.Sprintf("cmid-reaction-%s", reaction.Kind),
-		})
+		}
+		// Alternate add/remove to exercise both is_set values on the wire.
+		if i%2 == 0 {
+			msg, err = client.Messages().AddReaction(ctx, chat, interopMessageGUID, reaction, opts)
+		} else {
+			msg, err = client.Messages().RemoveReaction(ctx, chat, interopMessageGUID, reaction, opts)
+		}
 		if err != nil {
-			t.Fatalf("SetReaction(%s): %v", reaction.Kind, err)
+			t.Fatalf("Add/RemoveReaction(%s): %v", reaction.Kind, err)
 		}
 		assertGoFullMessage(t, msg)
 	}
 
-	msg, err = client.Messages().PlaceSticker(ctx, chat, interopMessageGUID, interopStickerGUID, StickerPlacement{
-		X:        0.4,
-		Y:        0.6,
-		Scale:    ptrFloat(1.25),
-		Rotation: ptrFloat(0.5),
-		Width:    ptrFloat(0.3),
+	msg, err = client.Messages().PlaceSticker(ctx, chat, interopMessageGUID, StickerInput{
+		GUID: interopStickerGUID,
+		Placement: StickerPlacement{
+			X:        0.4,
+			Y:        0.6,
+			Scale:    ptrFloat(1.25),
+			Rotation: ptrFloat(0.5),
+			Width:    ptrFloat(0.3),
+		},
 	}, &PartOptions{
 		PartIndex:       ptrInt(2),
 		ClientMessageID: "cmid-sticker",

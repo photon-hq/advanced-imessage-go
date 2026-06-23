@@ -144,9 +144,13 @@ type Message struct {
 	Reaction                *MessageReaction
 	ReactionSelected        *bool
 
+	// AppliedReactions are the tapbacks currently on the message, ordered
+	// oldest-first (by DateCreated, then MessageGUID).
 	AppliedReactions []MessageAppliedReaction
-	PlacedStickers   []MessagePlacedSticker
-	ChatGUIDs        []string
+	// PlacedStickers are the stickers on the message, ordered oldest-first (by
+	// DateCreated, then MessageGUID).
+	PlacedStickers []MessagePlacedSticker
+	ChatGUIDs      []string
 }
 
 // MessageContent is the rendered content of a message.
@@ -202,6 +206,15 @@ type StickerPlacement struct {
 	Width *float64
 }
 
+// StickerInput identifies a previously uploaded sticker attachment and how it
+// should sit on the target message. See [MessageClient.PlaceSticker].
+type StickerInput struct {
+	// GUID is the GUID of a previously uploaded sticker attachment.
+	GUID string
+	// Placement is where and how the sticker sits on the message.
+	Placement StickerPlacement
+}
+
 // TextFormat is a formatting run reported on inbound content.
 type TextFormat struct {
 	Type       string
@@ -255,8 +268,10 @@ type ReplyTarget struct {
 	PartIndex *int
 }
 
-// Reaction is a settable tapback for [MessageClient.SetReaction]. Kind must be
-// one of the user-settable kinds (not [ReactionSticker] or [ReactionUnknown]).
+// Reaction is a settable tapback for [MessageClient.AddReaction] and
+// [MessageClient.RemoveReaction]. Kind must be one of the user-settable kinds
+// (not [ReactionSticker] or [ReactionUnknown]); when Kind is [ReactionEmoji],
+// Emoji must be non-empty.
 type Reaction struct {
 	Kind  MessageReactionKind
 	Emoji string
@@ -355,6 +370,7 @@ type MessageListFilter struct {
 
 // MessageListPage is one page of a message listing.
 type MessageListPage struct {
+	// Messages are ordered newest-first; the order is stable across pages.
 	Messages      []Message
 	NextPageToken string
 }

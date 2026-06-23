@@ -120,6 +120,27 @@ if errors.As(err, &ierr) {
 }
 ```
 
+## Testing
+
+Two patterns help when testing code that uses this library:
+
+- **Fake the server.** Point `New` at an in-process Connect server with
+  `WithoutTLS` and `WithHTTPClient` — an `httptest` server with unencrypted
+  HTTP/2 enabled — and mount fakes built on the generated
+  `Unimplemented*ServiceHandler` types.
+- **Fake a subscription.** To unit-test event handlers without any transport,
+  build a subscription from a fixed iterator and range over it as usual:
+
+  ```go
+  sub := imessage.NewMessageSubscription(slices.Values([]imessage.MessageEvent{
+  	imessage.MessageReceived{ /* ... */ },
+  }))
+  defer sub.Close()
+  for ev := range sub.Events() {
+  	handle(ev) // the code under test
+  }
+  ```
+
 ## Development
 
 ```sh

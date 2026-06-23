@@ -2,6 +2,7 @@ package imessage
 
 import (
 	"context"
+	"fmt"
 
 	imessagev1connect "buf.build/gen/go/photon-hq/imessage/connectrpc/go/photon/imessage/v1/imessagev1connect"
 	imessagev1 "buf.build/gen/go/photon-hq/imessage/protocolbuffers/go/photon/imessage/v1"
@@ -16,6 +17,10 @@ import (
 type MessageClient struct {
 	svc imessagev1connect.MessageServiceClient
 }
+
+// The transport subscription is the other [eventSource] behind the public
+// subscription types (the resumable engine is asserted in resumable.go).
+var _ eventSource[MessageEvent] = (*transport.Subscription[MessageEvent])(nil)
 
 // SubscribeOptions filters a live event subscription to a single chat. A nil
 // value (or zero Chat) subscribes to every chat.
@@ -206,10 +211,38 @@ func (m *MessageClient) Unsend(ctx context.Context, chat ChatGUID, messageGUID s
 	return asError(err)
 }
 
-// SetReaction adds (isSet=true) or removes (isSet=false) a tapback on a message.
-func (m *MessageClient) SetReaction(ctx context.Context, chat ChatGUID, messageGUID string, reaction Reaction, isSet bool, opts *PartOptions) (Message, error) {
+// AddReaction applies a tapback to a message. reaction.Kind must be a settable
+// kind (not [ReactionSticker] or [ReactionUnknown]); when Kind is
+// [ReactionEmoji], reaction.Emoji must be non-empty. Invalid input is rejected
+// with a [CodeInvalidArgument] error before any request is sent.
+func (m *MessageClient) AddReaction(ctx context.Context, chat ChatGUID, messageGUID string, reaction Reaction, opts *PartOptions) (Message, error) {
+	return m.setReaction(ctx, chat, messageGUID, reaction, true, opts)
+}
+
+// RemoveReaction removes a previously applied tapback from a message. The same
+// reaction-validity rules as [MessageClient.AddReaction] apply.
+func (m *MessageClient) RemoveReaction(ctx context.Context, chat ChatGUID, messageGUID string, reaction Reaction, opts *PartOptions) (Message, error) {
+	return m.setReaction(ctx, chat, messageGUID, reaction, false, opts)
+}
+
+func (m *MessageClient) setReaction(ctx context.Context, chat ChatGUID, messageGUID string, reaction Reaction, isSet bool, opts *PartOptions) (Message, error) {
+	kind, ok := reactionKindToProto(reaction.Kind)
+	if !ok {
+		return Message{}, &Error{
+			Code:        CodeInvalidArgument,
+			ConnectCode: connect.CodeInvalidArgument,
+			Message:     fmt.Sprintf("reaction kind %q is not settable", reaction.Kind),
+		}
+	}
+	if reaction.Kind == ReactionEmoji && reaction.Emoji == "" {
+		return Message{}, &Error{
+			Code:        CodeInvalidArgument,
+			ConnectCode: connect.CodeInvalidArgument,
+			Message:     "emoji reaction requires a non-empty Emoji",
+		}
+	}
 	r := &imessagev1.MessageReaction{}
-	r.SetKind(reactionKindToProto(reaction.Kind))
+	r.SetKind(kind)
 	if reaction.Emoji != "" {
 		r.SetEmoji(reaction.Emoji)
 	}
@@ -232,9 +265,9 @@ func (m *MessageClient) SetReaction(ctx context.Context, chat ChatGUID, messageG
 }
 
 // PlaceSticker places a sticker attachment on a message.
-func (m *MessageClient) PlaceSticker(ctx context.Context, chat ChatGUID, messageGUID, stickerGUID string, placement StickerPlacement, opts *PartOptions) (Message, error) {
+func (m *MessageClient) PlaceSticker(ctx context.Context, chat ChatGUID, messageGUID string, sticker StickerInput, opts *PartOptions) (Message, error) {
 	ref := &imessagev1.AttachmentRef{}
-	ref.SetAttachmentGuid(stickerGUID)
+	ref.SetAttachmentGuid(sticker.GUID)
 	var partIndex *int
 	req := &imessagev1.PlaceStickerRequest{}
 	if opts != nil {
@@ -245,7 +278,7 @@ func (m *MessageClient) PlaceSticker(ctx context.Context, chat ChatGUID, message
 	}
 	req.SetTarget(messageTarget(chat, messageGUID, partIndex))
 	req.SetSticker(ref)
-	req.SetPlacement(stickerPlacementToProto(placement))
+	req.SetPlacement(stickerPlacementToProto(sticker.Placement))
 	resp, err := m.svc.PlaceSticker(ctx, connect.NewRequest(req))
 	if err != nil {
 		return Message{}, asError(err)
@@ -276,7 +309,9 @@ func (m *MessageClient) Get(ctx context.Context, messageGUID string) (Message, e
 	return messageFromProto(resp.Msg.GetMessage()), nil
 }
 
-// ListRecent lists recent messages across all chats.
+// ListRecent lists recent messages across all chats, newest-first. The order is
+// stable across pages; pass [MessageListPage.NextPageToken] back via
+// [MessageListFilter.PageToken] to fetch the next page.
 func (m *MessageClient) ListRecent(ctx context.Context, opts *MessageListFilter) (MessageListPage, error) {
 	req := &imessagev1.ListRecentMessagesRequest{}
 	applyListFilter(req, opts)
@@ -287,7 +322,9 @@ func (m *MessageClient) ListRecent(ctx context.Context, opts *MessageListFilter)
 	return messageListPage(resp.Msg), nil
 }
 
-// ListInChat lists messages within a single chat.
+// ListInChat lists messages within a single chat, newest-first. The order is
+// stable across pages; pass [MessageListPage.NextPageToken] back via
+// [MessageListFilter.PageToken] to fetch the next page.
 func (m *MessageClient) ListInChat(ctx context.Context, chat ChatGUID, opts *MessageListFilter) (MessageListPage, error) {
 	req := &imessagev1.ListChatMessagesRequest{}
 	req.SetChatGuid(chat.String())

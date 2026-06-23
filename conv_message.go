@@ -1,6 +1,9 @@
 package imessage
 
 import (
+	"cmp"
+	"slices"
+
 	imessagev1 "buf.build/gen/go/photon-hq/imessage/protocolbuffers/go/photon/imessage/v1"
 )
 
@@ -141,6 +144,14 @@ func appliedReactionsFromProto(in []*imessagev1.MessageAppliedReaction) []Messag
 		}
 		out = append(out, ar)
 	}
+	// Deterministic oldest-first order (DateCreated, then MessageGUID), owned by
+	// the client; see the contract on [Message.AppliedReactions].
+	slices.SortFunc(out, func(a, b MessageAppliedReaction) int {
+		if c := a.DateCreated.Compare(b.DateCreated); c != 0 {
+			return c
+		}
+		return cmp.Compare(a.MessageGUID, b.MessageGUID)
+	})
 	return out
 }
 
@@ -163,6 +174,14 @@ func placedStickersFromProto(in []*imessagev1.MessagePlacedSticker) []MessagePla
 		}
 		out = append(out, ps)
 	}
+	// Deterministic oldest-first order (DateCreated, then MessageGUID), owned by
+	// the client; see the contract on [Message.PlacedStickers].
+	slices.SortFunc(out, func(a, b MessagePlacedSticker) int {
+		if c := a.DateCreated.Compare(b.DateCreated); c != 0 {
+			return c
+		}
+		return cmp.Compare(a.MessageGUID, b.MessageGUID)
+	})
 	return out
 }
 

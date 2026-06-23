@@ -50,4 +50,15 @@
 // Every RPC failure is reported as an [*Error]. Match categories with
 // [errors.Is] against the package sentinels (for example [ErrNotFound]) or the
 // Is* helper functions, and read the structured detail with [errors.As].
+//
+// # Testing
+//
+// To test code that calls the client, run an in-process Connect server and
+// point [New] at it with [WithoutTLS] plus [WithHTTPClient] (an httptest server
+// with unencrypted HTTP/2 enabled works well), mounting fakes built on the
+// generated Unimplemented*ServiceHandler types.
+//
+// To unit-test event-handling code without any transport, build a subscription
+// from a fixed iterator with the New*Subscription constructors (for example
+// [NewMessageSubscription]) and range over it exactly as you would a live one.
 package imessage

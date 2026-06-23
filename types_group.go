@@ -34,3 +34,13 @@ func (GroupParticipantRemoved) isGroupChange() {}
 func (GroupParticipantLeft) isGroupChange()    {}
 func (GroupIconChanged) isGroupChange()        {}
 func (GroupIconRemoved) isGroupChange()        {}
+
+// Compile-time guards that each variant satisfies GroupChange.
+var (
+	_ GroupChange = GroupDisplayNameChanged{}
+	_ GroupChange = GroupParticipantAdded{}
+	_ GroupChange = GroupParticipantRemoved{}
+	_ GroupChange = GroupParticipantLeft{}
+	_ GroupChange = GroupIconChanged{}
+	_ GroupChange = GroupIconRemoved{}
+)

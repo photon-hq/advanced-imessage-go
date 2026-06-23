@@ -1,7 +1,9 @@
 package imessage
 
 import (
+	"cmp"
 	"context"
+	"slices"
 
 	imessagev1connect "buf.build/gen/go/photon-hq/imessage/connectrpc/go/photon/imessage/v1/imessagev1connect"
 	imessagev1 "buf.build/gen/go/photon-hq/imessage/protocolbuffers/go/photon/imessage/v1"
@@ -22,7 +24,8 @@ type LocationWatchOptions struct {
 	Address string
 }
 
-// List returns every friend location currently shared with the local user.
+// List returns every friend location currently shared with the local user,
+// sorted by [SharedFriendLocation.Address] for a deterministic order.
 func (l *LocationClient) List(ctx context.Context) ([]SharedFriendLocation, error) {
 	resp, err := l.svc.ListSharedFriendLocations(ctx, connect.NewRequest(&imessagev1.ListSharedFriendLocationsRequest{}))
 	if err != nil {
@@ -33,6 +36,9 @@ func (l *LocationClient) List(ctx context.Context) ([]SharedFriendLocation, erro
 	for _, loc := range locs {
 		out = append(out, sharedLocationFromProto(loc))
 	}
+	slices.SortFunc(out, func(a, b SharedFriendLocation) int {
+		return cmp.Compare(a.Address, b.Address)
+	})
 	return out, nil
 }
 

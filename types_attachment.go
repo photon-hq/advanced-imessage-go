@@ -105,3 +105,10 @@ type DownloadCompanionChunk struct{ Data []byte }
 func (DownloadHeader) isDownloadChunk()         {}
 func (DownloadPrimaryChunk) isDownloadChunk()   {}
 func (DownloadCompanionChunk) isDownloadChunk() {}
+
+// Compile-time guards that each variant satisfies DownloadChunk.
+var (
+	_ DownloadChunk = DownloadHeader{}
+	_ DownloadChunk = DownloadPrimaryChunk{}
+	_ DownloadChunk = DownloadCompanionChunk{}
+)

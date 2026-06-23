@@ -19,7 +19,8 @@ type Chat struct {
 	IsFiltered bool
 	// UnreadCount is the number of unread messages; nil when unavailable (0 is
 	// a real "all read" value).
-	UnreadCount  *int
+	UnreadCount *int
+	// Participants are in the order they joined the chat.
 	Participants []Handle
 	// LastMessage is the most recent message, if the server included it.
 	LastMessage *Message

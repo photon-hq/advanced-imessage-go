@@ -5,8 +5,10 @@ type Poll struct {
 	PollMessageGUID string
 	ChatGUID        string
 	Title           string
-	Options         []PollOption
-	Votes           []PollParticipantVote
+	// Options are in definition order (the order they were added to the poll).
+	Options []PollOption
+	// Votes are ordered by participant address, then option id.
+	Votes []PollParticipantVote
 }
 
 // PollOption is one choice in a [Poll].
@@ -50,3 +52,11 @@ func (PollCreated) isPollChangeDelta()     {}
 func (PollOptionAdded) isPollChangeDelta() {}
 func (PollVoted) isPollChangeDelta()       {}
 func (PollUnvoted) isPollChangeDelta()     {}
+
+// Compile-time guards that each variant satisfies PollChangeDelta.
+var (
+	_ PollChangeDelta = PollCreated{}
+	_ PollChangeDelta = PollOptionAdded{}
+	_ PollChangeDelta = PollVoted{}
+	_ PollChangeDelta = PollUnvoted{}
+)

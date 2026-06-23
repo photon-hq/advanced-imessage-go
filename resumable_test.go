@@ -10,6 +10,8 @@ import (
 	imessagev1connect "buf.build/gen/go/photon-hq/imessage/connectrpc/go/photon/imessage/v1/imessagev1connect"
 	imessagev1 "buf.build/gen/go/photon-hq/imessage/protocolbuffers/go/photon/imessage/v1"
 	"connectrpc.com/connect"
+
+	imessage "github.com/photon-hq/advanced-imessage-go"
 )
 
 type memStore struct {
@@ -17,6 +19,8 @@ type memStore struct {
 	seq uint64
 	ok  bool
 }
+
+var _ imessage.SequenceStore = (*memStore)(nil)
 
 func (s *memStore) Load(context.Context) (uint64, bool, error) {
 	s.mu.Lock()

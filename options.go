@@ -25,14 +25,14 @@ type config struct {
 	insecure        bool
 	timeout         time.Duration
 	retryEnabled    bool
-	retry           RetryOptions
+	retry           retryConfig
 	autoIdempotency bool
 	httpClient      connect.HTTPClient
 }
 
 func defaultConfig() config {
 	return config{
-		retry: RetryOptions{
+		retry: retryConfig{
 			MaxAttempts:  defaultMaxAttempts,
 			InitialDelay: defaultInitialDelay,
 			MaxDelay:     defaultMaxDelay,
@@ -61,14 +61,14 @@ func WithRetry(opts ...RetryOption) Option {
 	return optionFunc(func(c *config) {
 		c.retryEnabled = true
 		if c.retry.MaxAttempts == 0 {
-			c.retry = RetryOptions{
+			c.retry = retryConfig{
 				MaxAttempts:  defaultMaxAttempts,
 				InitialDelay: defaultInitialDelay,
 				MaxDelay:     defaultMaxDelay,
 			}
 		}
 		for _, o := range opts {
-			o(&c.retry)
+			o.applyRetry(&c.retry)
 		}
 	})
 }
@@ -87,30 +87,41 @@ func WithHTTPClient(hc connect.HTTPClient) Option {
 	return optionFunc(func(c *config) { c.httpClient = hc })
 }
 
-// RetryOptions parameterizes the retry backoff. See [WithRetry].
-type RetryOptions struct {
-	// MaxAttempts is the total number of attempts, including the first.
-	MaxAttempts int
-	// InitialDelay is the base backoff before the second attempt.
+// retryConfig holds the resolved retry backoff parameters. Its fields mirror
+// transport.RetryConfig so the root package can convert directly.
+type retryConfig struct {
+	MaxAttempts  int
 	InitialDelay time.Duration
-	// MaxDelay caps the per-attempt backoff.
-	MaxDelay time.Duration
+	MaxDelay     time.Duration
 }
 
-// A RetryOption tunes [RetryOptions] for [WithRetry].
-type RetryOption func(*RetryOptions)
+// A RetryOption tunes the retry backoff for [WithRetry]. The interface is closed
+// (its only method is unexported), so the package fully controls the set of
+// valid options; build them with [WithMaxAttempts], [WithInitialDelay], and
+// [WithMaxDelay].
+type RetryOption interface{ applyRetry(*retryConfig) }
+
+type retryOptionFunc func(*retryConfig)
+
+func (f retryOptionFunc) applyRetry(r *retryConfig) { f(r) }
 
 // WithMaxAttempts sets the total number of attempts (including the first).
 func WithMaxAttempts(n int) RetryOption {
-	return func(r *RetryOptions) { r.MaxAttempts = n }
+	return retryOptionFunc(func(r *retryConfig) { r.MaxAttempts = n })
 }
 
 // WithInitialDelay sets the base backoff before the second attempt.
 func WithInitialDelay(d time.Duration) RetryOption {
-	return func(r *RetryOptions) { r.InitialDelay = d }
+	return retryOptionFunc(func(r *retryConfig) { r.InitialDelay = d })
 }
 
 // WithMaxDelay caps the per-attempt backoff.
 func WithMaxDelay(d time.Duration) RetryOption {
-	return func(r *RetryOptions) { r.MaxDelay = d }
+	return retryOptionFunc(func(r *retryConfig) { r.MaxDelay = d })
 }
+
+// Compile-time guards that the unexported adapters satisfy their interfaces.
+var (
+	_ Option      = optionFunc(nil)
+	_ RetryOption = retryOptionFunc(nil)
+)

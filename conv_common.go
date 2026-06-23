@@ -155,26 +155,30 @@ func reactionKindFromProto(k imessagev1.MessageReactionKind) MessageReactionKind
 	}
 }
 
-func reactionKindToProto(k MessageReactionKind) imessagev1.MessageReactionKind {
+// reactionKindToProto maps a settable reaction kind to its proto value. ok is
+// false for kinds that callers may not set: ReactionSticker (received only),
+// ReactionUnknown, and any unrecognized value. Callers must reject !ok rather
+// than send a coerced default.
+func reactionKindToProto(k MessageReactionKind) (imessagev1.MessageReactionKind, bool) {
 	switch k {
 	case ReactionLove:
-		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_LOVE
+		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_LOVE, true
 	case ReactionLike:
-		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_LIKE
+		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_LIKE, true
 	case ReactionDislike:
-		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_DISLIKE
+		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_DISLIKE, true
 	case ReactionLaugh:
-		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_LAUGH
+		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_LAUGH, true
 	case ReactionEmphasize:
-		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_EMPHASIZE
+		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_EMPHASIZE, true
 	case ReactionQuestion:
-		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_QUESTION
+		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_QUESTION, true
 	case ReactionEmoji:
-		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_EMOJI
-	case ReactionSticker:
-		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_STICKER
+		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_EMOJI, true
 	default:
-		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_LOVE
+		// The proto enum has no UNSPECIFIED member (LOVE is the zero value), so
+		// return the zero value; ok=false means callers must reject it unread.
+		return imessagev1.MessageReactionKind_MESSAGE_REACTION_KIND_LOVE, false
 	}
 }
 

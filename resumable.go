@@ -98,6 +98,8 @@ type resumableMessages struct {
 	err error
 }
 
+var _ eventSource[MessageEvent] = (*resumableMessages)(nil)
+
 func (r *resumableMessages) run(ctx context.Context) {
 	defer close(r.done)
 	defer close(r.out)
