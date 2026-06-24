@@ -94,9 +94,20 @@ func pollEventFromChange(ev *imessagev1.PollChangeEvent, sequence uint64) (PollE
 }
 
 func pollEventFromProto(pb *imessagev1.SubscribePollEventsResponse) (PollEvent, bool, error) {
-	if pb.WhichPayload() != imessagev1.SubscribePollEventsResponse_PollChanged_case {
+	switch pb.WhichPayload() {
+	case imessagev1.SubscribePollEventsResponse_PollChanged_case:
+		ev, ok := pollEventFromChange(pb.GetPollChanged(), pb.GetSequence())
+		return ev, ok, nil
+	case imessagev1.SubscribePollEventsResponse_Heartbeat_case:
+		// Heartbeat frames are application-level liveness pings, not domain
+		// events, so they are dropped from the public stream rather than
+		// surfaced. Receiving one still proves the connection is live: it
+		// resets the HTTP/2 transport's read-idle keepalive (see
+		// transport.keepaliveTime), which is what guards against a half-open
+		// stall. We match this case explicitly so heartbeats are an intentional
+		// drop, distinct from an unrecognized payload below.
+		return nil, false, nil
+	default:
 		return nil, false, nil
 	}
-	ev, ok := pollEventFromChange(pb.GetPollChanged(), pb.GetSequence())
-	return ev, ok, nil
 }
