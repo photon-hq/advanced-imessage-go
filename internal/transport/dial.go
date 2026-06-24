@@ -6,9 +6,28 @@ import (
 	"math/rand/v2"
 	"net"
 	"net/http"
+	"time"
 
 	"connectrpc.com/connect"
 	"golang.org/x/net/http2"
+)
+
+// HTTP/2 keepalive parameters for the underlying transport. A long-lived
+// server-streaming RPC (SubscribeMessageEvents / SubscribePollEvents) can stall
+// forever on a half-open connection — one where the peer has gone away without
+// sending an RST or GOAWAY — because the receive loop simply never sees another
+// frame. Setting ReadIdleTimeout makes the transport send an HTTP/2 PING after
+// that much idle time and, if no PONG arrives within PingTimeout, tear the
+// connection down so the stream fails with an error the caller can reconnect
+// on. These mirror the gRPC client keepalive defaults used by the TypeScript
+// SDK (Time: 30s, Timeout: 20s) so both behave consistently.
+//
+// keepaliveTime is kept at or above the server's
+// grpc.http2.min_ping_interval_without_data_ms so the client never pings faster
+// than the server permits, which would earn a GOAWAY "too_many_pings".
+const (
+	keepaliveTime    = 30 * time.Second
+	keepaliveTimeout = 20 * time.Second
 )
 
 // Dial builds the HTTP client, base URL, and Connect client options (including
@@ -50,16 +69,21 @@ func Dial(cfg Config) (httpClient connect.HTTPClient, baseURL string, opts []con
 	return httpClient, baseURL, opts
 }
 
-// newHTTP2Client returns an HTTP/2 client. With TLS it relies on ALPN
-// negotiation via the standard transport; insecure mode uses h2c (prior
-// knowledge) by dialing cleartext TCP.
+// newHTTP2Client returns an HTTP/2 client with keepalive enabled (see
+// [keepaliveTime]). With TLS it relies on ALPN negotiation via the standard
+// transport; insecure mode uses h2c (prior knowledge) by dialing cleartext TCP.
 func newHTTP2Client(insecure bool) *http.Client {
 	if !insecure {
-		return &http.Client{Transport: &http2.Transport{}}
+		return &http.Client{Transport: &http2.Transport{
+			ReadIdleTimeout: keepaliveTime,
+			PingTimeout:     keepaliveTimeout,
+		}}
 	}
 	return &http.Client{
 		Transport: &http2.Transport{
-			AllowHTTP: true,
+			ReadIdleTimeout: keepaliveTime,
+			PingTimeout:     keepaliveTimeout,
+			AllowHTTP:       true,
 			DialTLSContext: func(ctx context.Context, network, addr string, _ *tls.Config) (net.Conn, error) {
 				var d net.Dialer
 				return d.DialContext(ctx, network, addr)
