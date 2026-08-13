@@ -1,10 +1,12 @@
 package imessage
 
 import (
+	"encoding/base64"
 	"testing"
 	"time"
 
 	imessagev1 "buf.build/gen/go/photon-hq/imessage/protocolbuffers/go/photon/imessage/v1"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -86,6 +88,88 @@ func TestMessageFromProtoMapsFields(t *testing.T) {
 	// An absent optional must stay nil, not a zero value.
 	if got.ChatActionType != nil {
 		t.Errorf("ChatActionType = %v, want nil", got.ChatActionType)
+	}
+	if got.Content.MiniApp != nil {
+		t.Errorf("Content.MiniApp = %+v, want nil", got.Content.MiniApp)
+	}
+}
+
+func TestCatchUpEventFromProtoMapsMiniApp(t *testing.T) {
+	// Fixed v11.3.0 CatchUpEventsResponse frame containing
+	// Message.content.mini_app. This catches field-number drift between the
+	// server schema, generated client, and the public Go mapping.
+	wire, err := base64.StdEncoding.DecodeString("CMsRUt8CChdpTWVzc2FnZTstOysxNTU1MTIzNDU2NxIGCIfH8dMGUrsCCrgCCg1taW5pLWFwcC1ndWlkEvMBOvABCgpQOFhUNjIzMlNMEiZjb2Rlcy5waG90b24uRXhhbXBsZS5NZXNzYWdlc0V4dGVuc2lvbhoLRXhhbXBsZSBBcHAiHmh0dHBzOi8vZXhhbXBsZS5jb20vY2FyZD9pZD00MiokOEQ4OTgwMzQtNDA3Qi00RkY1LTkxRTgtOURDMTg5MTFEQ0E5MNKF2MwEOAFCXwoHQ2FwdGlvbhIKU3ViY2FwdGlvbhoIVHJhaWxpbmciD1RyYWlsaW5nIGRldGFpbCoLSW1hZ2UgdGl0bGUyDkltYWdlIHN1YnRpdGxlOhBGYWxsYmFjayBzdW1tYXJ5UgYIh8fx0waiAQ4KDCsxNTU1MTIzNDU2N+IFF2lNZXNzYWdlOy07KzE1NTUxMjM0NTY3")
+	if err != nil {
+		t.Fatalf("decode fixture: %v", err)
+	}
+
+	var frame imessagev1.CatchUpEventsResponse
+	if err := proto.Unmarshal(wire, &frame); err != nil {
+		t.Fatalf("unmarshal fixture: %v", err)
+	}
+	event, ok, err := catchUpEventFromProto(&frame)
+	if err != nil {
+		t.Fatalf("map catch-up event: %v", err)
+	}
+	if !ok {
+		t.Fatal("map catch-up event: ok = false")
+	}
+	received, ok := event.(MessageReceived)
+	if !ok {
+		t.Fatalf("event type = %T, want MessageReceived", event)
+	}
+
+	miniApp := received.Message.Content.MiniApp
+	if miniApp == nil {
+		t.Fatal("Message.Content.MiniApp = nil")
+	}
+	if miniApp.TeamID != "P8XT6232SL" || miniApp.ExtensionBundleID != "codes.photon.Example.MessagesExtension" {
+		t.Fatalf("MiniApp identity = %+v", miniApp)
+	}
+	assertStringPtr(t, "MiniApp.AppName", miniApp.AppName, "Example App")
+	assertStringPtr(t, "MiniApp.URL", miniApp.URL, "https://example.com/card?id=42")
+	assertStringPtr(t, "MiniApp.SessionID", miniApp.SessionID, "8D898034-407B-4FF5-91E8-9DC18911DCA9")
+	if miniApp.AppStoreID == nil || *miniApp.AppStoreID != 1234567890 {
+		t.Fatalf("MiniApp.AppStoreID = %v", miniApp.AppStoreID)
+	}
+	if !miniApp.Live {
+		t.Error("MiniApp.Live = false, want true")
+	}
+	if miniApp.Layout == nil {
+		t.Fatal("MiniApp.Layout = nil")
+	}
+	assertStringPtr(t, "MiniApp.Layout.Caption", miniApp.Layout.Caption, "Caption")
+	assertStringPtr(t, "MiniApp.Layout.Subcaption", miniApp.Layout.Subcaption, "Subcaption")
+	assertStringPtr(t, "MiniApp.Layout.TrailingCaption", miniApp.Layout.TrailingCaption, "Trailing")
+	assertStringPtr(t, "MiniApp.Layout.TrailingSubcaption", miniApp.Layout.TrailingSubcaption, "Trailing detail")
+	assertStringPtr(t, "MiniApp.Layout.ImageTitle", miniApp.Layout.ImageTitle, "Image title")
+	assertStringPtr(t, "MiniApp.Layout.ImageSubtitle", miniApp.Layout.ImageSubtitle, "Image subtitle")
+	assertStringPtr(t, "MiniApp.Layout.Summary", miniApp.Layout.Summary, "Fallback summary")
+}
+
+func TestMessageContentFromProtoPreservesIdentityOnlyMiniApp(t *testing.T) {
+	miniApp := &imessagev1.MiniAppContent{}
+	miniApp.SetTeamId("P8XT6232SL")
+	miniApp.SetExtensionBundleId("codes.photon.Example.MessagesExtension")
+	content := &imessagev1.MessageContent{}
+	content.SetMiniApp(miniApp)
+
+	got := messageContentFromProto(content).MiniApp
+	if got == nil {
+		t.Fatal("MessageContent.MiniApp = nil")
+	}
+	if got.TeamID != "P8XT6232SL" || got.ExtensionBundleID != "codes.photon.Example.MessagesExtension" {
+		t.Fatalf("MiniApp identity = %+v", got)
+	}
+	if got.AppName != nil || got.URL != nil || got.SessionID != nil || got.AppStoreID != nil || got.Layout != nil {
+		t.Fatalf("MiniApp optional fields = %+v, want nil", got)
+	}
+}
+
+func assertStringPtr(t *testing.T, name string, got *string, want string) {
+	t.Helper()
+	if got == nil || *got != want {
+		t.Fatalf("%s = %v, want %q", name, got, want)
 	}
 }
 

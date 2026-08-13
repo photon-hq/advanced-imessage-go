@@ -35,6 +35,10 @@ func ptrBool(v bool) *bool { return &v }
 
 func ptrFloat(v float64) *float64 { return &v }
 
+func ptrString(v string) *string { return &v }
+
+func ptrInt64(v int64) *int64 { return &v }
+
 func handleFromProto(pb *imessagev1.SingleServiceAddressInfo) Handle {
 	if pb == nil {
 		return Handle{}

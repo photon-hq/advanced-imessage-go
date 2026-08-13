@@ -106,7 +106,66 @@ func messageContentFromProto(pb *imessagev1.MessageContent) MessageContent {
 	for _, mn := range pb.GetMentions() {
 		c.Mentions = append(c.Mentions, mentionFromProto(mn))
 	}
+	if pb.HasMiniApp() {
+		c.MiniApp = miniAppContentFromProto(pb.GetMiniApp())
+	}
 	return c
+}
+
+func miniAppContentFromProto(pb *imessagev1.MiniAppContent) *MiniAppContent {
+	if pb == nil {
+		return nil
+	}
+	content := &MiniAppContent{
+		TeamID:            pb.GetTeamId(),
+		ExtensionBundleID: pb.GetExtensionBundleId(),
+		Live:              pb.GetLive(),
+	}
+	if pb.HasAppName() {
+		content.AppName = ptrString(pb.GetAppName())
+	}
+	if pb.HasUrl() {
+		content.URL = ptrString(pb.GetUrl())
+	}
+	if pb.HasSessionId() {
+		content.SessionID = ptrString(pb.GetSessionId())
+	}
+	if pb.HasAppStoreId() {
+		content.AppStoreID = ptrInt64(pb.GetAppStoreId())
+	}
+	if pb.HasLayout() {
+		content.Layout = miniAppLayoutInfoFromProto(pb.GetLayout())
+	}
+	return content
+}
+
+func miniAppLayoutInfoFromProto(pb *imessagev1.MiniAppLayoutInfo) *MiniAppLayoutInfo {
+	if pb == nil {
+		return nil
+	}
+	layout := &MiniAppLayoutInfo{}
+	if pb.HasCaption() {
+		layout.Caption = ptrString(pb.GetCaption())
+	}
+	if pb.HasSubcaption() {
+		layout.Subcaption = ptrString(pb.GetSubcaption())
+	}
+	if pb.HasTrailingCaption() {
+		layout.TrailingCaption = ptrString(pb.GetTrailingCaption())
+	}
+	if pb.HasTrailingSubcaption() {
+		layout.TrailingSubcaption = ptrString(pb.GetTrailingSubcaption())
+	}
+	if pb.HasImageTitle() {
+		layout.ImageTitle = ptrString(pb.GetImageTitle())
+	}
+	if pb.HasImageSubtitle() {
+		layout.ImageSubtitle = ptrString(pb.GetImageSubtitle())
+	}
+	if pb.HasSummary() {
+		layout.Summary = ptrString(pb.GetSummary())
+	}
+	return layout
 }
 
 func textFormatFromProto(pb *imessagev1.TextFormat) TextFormat {
