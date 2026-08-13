@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.2](https://github.com/photon-hq/advanced-imessage-go/compare/v0.1.1...v0.1.2) (2026-08-13)
+
+
+### Features
+
+* expose inbound mini-app content ([#4](https://github.com/photon-hq/advanced-imessage-go/issues/4)) ([8d90ef6](https://github.com/photon-hq/advanced-imessage-go/commit/8d90ef6f7512fb640bd19092313e48086b35b975))
+
 ## [0.1.1](https://github.com/photon-hq/advanced-imessage-go/compare/v0.1.0...v0.1.1) (2026-06-24)
 
 
