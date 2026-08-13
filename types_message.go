@@ -161,6 +161,35 @@ type MessageContent struct {
 	Mentions              []MessageMention
 	BalloonBundleID       string
 	ExpressiveSendStyleID string
+	// MiniApp contains the public fields decoded from an iMessage app-extension
+	// balloon. It is nil for messages without mini-app content.
+	MiniApp *MiniAppContent
+}
+
+// MiniAppContent is the public, decoded portion of an inbound iMessage
+// app-extension balloon. Apple's opaque payload archive is intentionally not
+// exposed by the API.
+type MiniAppContent struct {
+	TeamID            string
+	ExtensionBundleID string
+	AppName           *string
+	URL               *string
+	SessionID         *string
+	AppStoreID        *int64
+	Live              bool
+	Layout            *MiniAppLayoutInfo
+}
+
+// MiniAppLayoutInfo contains the visible fields decoded from an inbound
+// mini-app card. Card media remains a separate message attachment.
+type MiniAppLayoutInfo struct {
+	Caption            *string
+	Subcaption         *string
+	TrailingCaption    *string
+	TrailingSubcaption *string
+	ImageTitle         *string
+	ImageSubtitle      *string
+	Summary            *string
 }
 
 // MessageReaction is a tapback's kind and optional emoji.
